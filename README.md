@@ -45,10 +45,10 @@ This project is a simple QR code generator implemented using .NET 8 Minimal API.
 
 ## Usage
 
-To generate a QR code, make a GET request to the `/qrcode` endpoint with a `referenceNumber` query parameter:
+To generate a QR code, make a GET request to the `/qrcode/{referenceNumber}` endpoint, where `{referenceNumber}` is replaced with your actual reference number:
 
 ```
-GET https://localhost:5001/qrcode?referenceNumber=YourReferenceHere
+GET https://localhost:5001/qrcode/YourReferenceHere
 ```
 
 Replace `YourReferenceHere` with the actual reference number you want to encode in the QR code.
@@ -65,7 +65,7 @@ Example usage in HTML:
 ## Error Handling
 
 The API will return a 400 Bad Request status code with an error message in the following cases:
-- If the referenceNumber parameter is missing or empty
+- If the referenceNumber is missing or empty
 - If the referenceNumber contains any characters other than letters and numbers
 
 ## Note

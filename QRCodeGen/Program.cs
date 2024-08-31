@@ -1,27 +1,54 @@
 using QRCoder;
+using Serilog;
 using System.Text.RegularExpressions;
 
 var builder = WebApplication.CreateBuilder(args);
-var app = builder.Build();
 
-app.MapGet("/qrcode", (string referenceNumber) =>
+// Configure Serilog
+Log.Logger = new LoggerConfiguration()
+    .ReadFrom.Configuration(builder.Configuration)
+    .CreateLogger();
+
+builder.Host.UseSerilog();
+
+try
 {
-    if (string.IsNullOrEmpty(referenceNumber))
+    var app = builder.Build();
+
+    if (app.Environment.IsDevelopment())
     {
-        return Results.BadRequest("Reference number is required.");
+        app.UseDeveloperExceptionPage();
     }
 
-    if (!Regex.IsMatch(referenceNumber, "^[a-zA-Z0-9]+$"))
+    app.UseSerilogRequestLogging();
+
+    app.MapGet("/qrcode/{referenceNumber}", (string referenceNumber) =>
     {
-        return Results.BadRequest("Reference number must be alphanumeric.");
-    }
+        if (string.IsNullOrEmpty(referenceNumber))
+        {
+            return Results.BadRequest("Reference number is required.");
+        }
 
-    QRCodeGenerator qrGenerator = new QRCodeGenerator();
-    QRCodeData qrCodeData = qrGenerator.CreateQrCode(referenceNumber, QRCodeGenerator.ECCLevel.Q);
-    Base64QRCode qrCode = new Base64QRCode(qrCodeData);
-    string qrCodeImageBase64 = qrCode.GetGraphic(20);
+        if (!Regex.IsMatch(referenceNumber, "^[a-zA-Z0-9]+$"))
+        {
+            return Results.BadRequest("Reference number must be alphanumeric.");
+        }
 
-    return Results.Ok(qrCodeImageBase64);
-});
+        QRCodeGenerator qrGenerator = new QRCodeGenerator();
+        QRCodeData qrCodeData = qrGenerator.CreateQrCode(referenceNumber, QRCodeGenerator.ECCLevel.Q);
+        PngByteQRCode qrCode = new PngByteQRCode(qrCodeData);
+        byte[] qrCodeImageBase64 = qrCode.GetGraphic(20);
 
-app.Run();
+        return Results.Ok(qrCodeImageBase64);
+    });
+
+    app.Run();
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "Host terminated unexpectedly");
+}
+finally
+{
+    Log.CloseAndFlush();
+}
